@@ -1,0 +1,8 @@
+{
+  "name": "Fermented Tofu Master",
+  "description": "A relaxing, tactile simulation game where you craft traditional spicy fermented tofu (Meidoufu). Cut the mycelium, season perfectly, and jar your creation.",
+  "requestFramePermissions": [
+    "accelerometer",
+    "gyroscope"
+  ]
+}
