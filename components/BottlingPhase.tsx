@@ -62,8 +62,6 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
   const [draggingType, setDraggingType] = useState<'tofu' | 'lid' | null>(null);
   const [draggingId, setDraggingId] = useState<number | null>(null);
   
-  // Use Refs for logic to avoid stale closures in event listeners
-  const cursorPosRef = useRef({ x: 0, y: 0 });
   // Also keep state for render updates (cursor visual)
   const [cursorVisual, setCursorVisual] = useState({ x: 0, y: 0 });
   
@@ -71,9 +69,7 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
   const [isHoveringJar, setIsHoveringJar] = useState(false);
 
   const handlePointerDown = (type: 'tofu' | 'lid', e: React.PointerEvent, id?: number) => {
-      e.preventDefault(); // Stop scroll
-      // Capture pointer so we don't lose the event if the finger moves fast
-      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+      e.preventDefault(); 
 
       if (isSealed) return;
       if (type === 'tofu' && id === undefined) return;
@@ -83,81 +79,78 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
       setDraggingType(type);
       if (id !== undefined) setDraggingId(id);
       
-      // Update both Ref and State IMMEDIATELY so it snaps to finger
-      cursorPosRef.current = { x: e.clientX, y: e.clientY };
       setCursorVisual({ x: e.clientX, y: e.clientY });
       
       if (navigator.vibrate) navigator.vibrate(10);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    // Pointer move attached to specific elements might need global tracking if captured, 
-    // but here we just need to update visual cursor
-    cursorPosRef.current = { x: e.clientX, y: e.clientY };
-    
-    if (draggingType) {
+  // Global Drag Logic
+  useEffect(() => {
+    const handleGlobalMove = (e: PointerEvent) => {
         setCursorVisual({ x: e.clientX, y: e.clientY });
         
-        // Check hover highlight
-        if (jarRef.current) {
+        // Hover Highlight
+        if (draggingType && jarRef.current) {
             const rect = jarRef.current.getBoundingClientRect();
              // Broad hitbox including the neck area above
             const isHit = e.clientX > rect.left - 50 && e.clientX < rect.right + 50 && 
                           e.clientY > rect.top - 150 && e.clientY < rect.bottom + 50;
             setIsHoveringJar(isHit);
         }
-    }
-  };
+    };
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    // Release capture
-    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
+    const handleGlobalUp = (e: PointerEvent) => {
+        if (!draggingType) return;
+        
+        let isHit = false;
+        if (jarRef.current) {
+            const rect = jarRef.current.getBoundingClientRect();
+            // Generous Hitbox
+            isHit = e.clientX > rect.left - 50 && e.clientX < rect.right + 50 && 
+                    e.clientY > rect.top - 150 && e.clientY < rect.bottom + 50;
+        }
 
-    if (!draggingType) return;
-
-    // Use REF for collision check (Fresh coordinates)
-    const { x, y } = cursorPosRef.current;
-    
-    let isHit = false;
-    if (jarRef.current) {
-        const rect = jarRef.current.getBoundingClientRect();
-        // Generous Hitbox
-        isHit = x > rect.left - 50 && x < rect.right + 50 && 
-                y > rect.top - 150 && y < rect.bottom + 50;
-    }
-
-    if (draggingType === 'tofu' && draggingId !== null) {
-        if (isHit) {
-            // Move from Bowl to Jar
-            const piece = bowlPieces.find(p => p.id === draggingId);
-            if (piece) {
+        if (draggingType === 'tofu' && draggingId !== null) {
+            if (isHit) {
+                // Move from Bowl to Jar
+                const piece = bowlPieces.find(p => p.id === draggingId);
+                if (piece) {
+                    setBowlPieces(prev => prev.filter(p => p.id !== draggingId));
+                    setJarContents(prev => [...prev, {
+                        id: piece.id,
+                        x: (Math.random() * 60) + 20, // 20-80% horizontal
+                        y: 90 - (prev.length * 10) - (Math.random() * 5), // Stack vertically
+                        r: (Math.random() * 20) - 10 // Less rotation in jar
+                    }]);
+                    if (navigator.vibrate) navigator.vibrate(20);
+                }
+            } else {
+                // Missed! Drop it.
                 setBowlPieces(prev => prev.filter(p => p.id !== draggingId));
-                setJarContents(prev => [...prev, {
-                    id: piece.id,
-                    x: (Math.random() * 60) + 20, // 20-80% horizontal
-                    y: 90 - (prev.length * 10) - (Math.random() * 5), // Stack vertically
-                    r: (Math.random() * 20) - 10 // Less rotation in jar
-                }]);
-                if (navigator.vibrate) navigator.vibrate(20);
+                setDroppedCount(prev => prev + 1);
+                if (navigator.vibrate) navigator.vibrate([100]);
             }
-        } else {
-            // Missed! Drop it.
-            setBowlPieces(prev => prev.filter(p => p.id !== draggingId));
-            setDroppedCount(prev => prev + 1);
-            if (navigator.vibrate) navigator.vibrate([100]);
+        } else if (draggingType === 'lid') {
+            if (isHit) {
+                setIsLidOn(true);
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
         }
-    } else if (draggingType === 'lid') {
-        if (isHit) {
-            setIsLidOn(true);
-            if (navigator.vibrate) navigator.vibrate(50);
-        }
-    }
-    
-    // Reset
-    setDraggingType(null);
-    setDraggingId(null);
-    setIsHoveringJar(false);
-  };
+        
+        // Reset
+        setDraggingType(null);
+        setDraggingId(null);
+        setIsHoveringJar(false);
+    };
+
+    window.addEventListener('pointermove', handleGlobalMove);
+    window.addEventListener('pointerup', handleGlobalUp);
+
+    return () => {
+        window.removeEventListener('pointermove', handleGlobalMove);
+        window.removeEventListener('pointerup', handleGlobalUp);
+    };
+  }, [draggingType, draggingId, bowlPieces]); // Dependencies for closure state
 
   const handleSealClick = () => {
       if (!isLidOn || isSealed) return;
@@ -188,8 +181,6 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                         <div
                             key={p.id}
                             onPointerDown={(e) => handlePointerDown('tofu', e, p.id)}
-                            onPointerMove={handlePointerMove}
-                            onPointerUp={handlePointerUp}
                             className="absolute w-16 h-16 bg-white rounded-sm shadow-md border border-stone-100 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform touch-none"
                             style={{
                                 left: `${p.x}%`,
@@ -224,8 +215,6 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                 <div 
                     className="absolute top-20 -left-20 w-36 h-12 bg-red-700 rounded-sm shadow-xl border-b-4 border-red-900 cursor-grab animate-pulse flex items-center justify-center touch-none"
                     onPointerDown={(e) => handlePointerDown('lid', e)}
-                    onPointerMove={handlePointerMove}
-                    onPointerUp={handlePointerUp}
                 >
                      <div className="text-center text-[10px] text-white/50 font-bold tracking-widest">拖我</div>
                 </div>

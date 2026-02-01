@@ -61,67 +61,57 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
   
   const bowlRef = useRef<HTMLDivElement>(null);
 
-  // Handle Dragging using PointerEvents for better touch support
+  // Handle Dragging Initialization
   const handlePointerDown = (id: number, e: React.PointerEvent) => {
-    e.preventDefault(); // Stop default browser actions like scroll
+    e.preventDefault(); 
     if (navigator.vibrate) navigator.vibrate(20);
-    
-    // Set Pointer Capture to ensure we don't lose the "touch" if moving fast
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-
     setCursorPos({ x: e.clientX, y: e.clientY });
     setDraggingId(id);
   };
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    // Only update if we are dragging or just hovering (optional)
-    setCursorPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-     // Release capture if held
-    if (draggingId !== null) {
-       try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
-    }
-
-    if (draggingId === null) return;
-
-    // Check collision with Bowl
-    let success = false;
-    if (bowlRef.current) {
-        const bowlRect = bowlRef.current.getBoundingClientRect();
-        // Adjust collision check to be near the bowl
-        const hitX = cursorPos.x >= bowlRect.left && cursorPos.x <= bowlRect.right;
-        const hitY = cursorPos.y >= (bowlRect.top - 80) && cursorPos.y <= bowlRect.bottom;
-        
-        if (hitX && hitY) {
-            success = true;
-        }
-    }
-
-    if (success) {
-        setBlocks(prev => prev.map(b => b.id === draggingId ? { ...b, state: 'in_bowl' } : b));
-        if (navigator.vibrate) navigator.vibrate([30, 30]);
-    } else {
-        setBlocks(prev => prev.map(b => b.id === draggingId ? { ...b, state: 'damaged' } : b)); 
-        setDroppedCount(prev => prev + 1);
-        if (navigator.vibrate) navigator.vibrate(100);
-    }
-
-    setProcessedCount(prev => prev + 1);
-    setDraggingId(null);
-  };
-
+  // Global Drag Logic
   useEffect(() => {
-    // Global listener for the cursor visual when not dragging
-    const handleGlobalMove = (e: MouseEvent) => {
-        if (draggingId === null) {
-            setCursorPos({x: e.clientX, y: e.clientY});
-        }
+    const handleGlobalMove = (e: PointerEvent) => {
+        setCursorPos({ x: e.clientX, y: e.clientY });
     };
-    window.addEventListener('mousemove', handleGlobalMove);
-    return () => window.removeEventListener('mousemove', handleGlobalMove);
-  }, [draggingId]);
+
+    const handleGlobalUp = (e: PointerEvent) => {
+        if (draggingId === null) return;
+
+        // Check collision with Bowl
+        let success = false;
+        if (bowlRef.current) {
+            const bowlRect = bowlRef.current.getBoundingClientRect();
+            // Adjust collision check to be near the bowl
+            const hitX = e.clientX >= bowlRect.left && e.clientX <= bowlRect.right;
+            const hitY = e.clientY >= (bowlRect.top - 80) && e.clientY <= bowlRect.bottom;
+            
+            if (hitX && hitY) {
+                success = true;
+            }
+        }
+
+        if (success) {
+            setBlocks(prev => prev.map(b => b.id === draggingId ? { ...b, state: 'in_bowl' } : b));
+            if (navigator.vibrate) navigator.vibrate([30, 30]);
+        } else {
+            setBlocks(prev => prev.map(b => b.id === draggingId ? { ...b, state: 'damaged' } : b)); 
+            setDroppedCount(prev => prev + 1);
+            if (navigator.vibrate) navigator.vibrate(100);
+        }
+
+        setProcessedCount(prev => prev + 1);
+        setDraggingId(null);
+    };
+
+    window.addEventListener('pointermove', handleGlobalMove);
+    window.addEventListener('pointerup', handleGlobalUp);
+
+    return () => {
+        window.removeEventListener('pointermove', handleGlobalMove);
+        window.removeEventListener('pointerup', handleGlobalUp);
+    };
+  }, [draggingId]); 
 
 
   useEffect(() => {
@@ -139,7 +129,6 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
         <TransferSpatulaCursor x={cursorPos.x} y={cursorPos.y} holding={draggingId !== null} />
 
         {/* TOP: The Board (Source) */}
-        {/* Adjusted to sit higher up in the 800x800 container (Zone 2) */}
         <div className="absolute top-[160px] left-1/2 -translate-x-1/2 w-[340px] h-[340px] flex items-center justify-center">
             {/* Board Container */}
             <div className="relative aspect-square w-full max-w-[280px] bg-stone-900/10 rounded-lg touch-none select-none">
@@ -177,8 +166,6 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
                     <div
                         key={block.id}
                         onPointerDown={(e) => handlePointerDown(block.id, e)}
-                        onPointerMove={handlePointerMove}
-                        onPointerUp={handlePointerUp}
                         className="absolute z-10 hover:scale-105 transition-transform touch-none"
                         style={style}
                     >
@@ -198,7 +185,6 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
         </div>
 
         {/* BOTTOM: The Bowl (Target) */}
-        {/* Adjusted to sit lower down */}
         <div ref={bowlRef} className="absolute top-[500px] left-1/2 -translate-x-1/2 w-[300px] h-[300px] group">
              <div className={`absolute inset-0 bg-green-500/20 rounded-full blur-xl transition-opacity ${draggingId !== null ? 'opacity-100' : 'opacity-0'}`}></div>
 
