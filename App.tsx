@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { GamePhase, GameScore } from './types';
+import { GamePhase, GameScore, Difficulty } from './types';
 import MenuPhase from './components/MenuPhase';
 import CuttingPhase from './components/CuttingPhase';
 import TransferPhase from './components/TransferPhase';
@@ -11,16 +11,27 @@ import { Volume2, VolumeX } from 'lucide-react';
 
 export default function App() {
   const [phase, setPhase] = useState<GamePhase>('MENU');
+  const [difficulty, setDifficulty] = useState<Difficulty>('EASY');
   const [score, setScore] = useState<GameScore>({
     integrity: 100,
     alcoholPrecision: 0,
     flavorBalance: 0,
     bottlingScore: 100,
     flavorTitle: '',
-    total: 0
+    total: 0,
+    difficulty: 'EASY'
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
   
+  // Calculate settings based on difficulty
+  const gridSize = useMemo(() => {
+    switch(difficulty) {
+        case 'MEDIUM': return 4;
+        case 'HARD': return 5;
+        default: return 3;
+    }
+  }, [difficulty]);
+
   // Responsive State
   const [baseScale, setBaseScale] = useState(1);
   const [isPortrait, setIsPortrait] = useState(() => 
@@ -54,7 +65,15 @@ export default function App() {
   }, []);
 
   const resetGame = () => {
-    setScore({ integrity: 100, alcoholPrecision: 0, flavorBalance: 0, bottlingScore: 100, flavorTitle: '', total: 0 });
+    setScore({ 
+        integrity: 100, 
+        alcoholPrecision: 0, 
+        flavorBalance: 0, 
+        bottlingScore: 100, 
+        flavorTitle: '', 
+        total: 0,
+        difficulty: difficulty 
+    });
     setPhase('CUTTING');
   };
 
@@ -127,8 +146,17 @@ export default function App() {
             )}
 
             {phase !== 'MENU' && phase !== 'RESULT' && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 bg-black/60 text-white px-4 py-1 rounded-full text-xs font-medium backdrop-blur-sm whitespace-nowrap z-40 shadow-sm pointer-events-none">
-                    {getStepText()}
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-40 pointer-events-none">
+                     <div className="bg-black/60 text-white px-4 py-1 rounded-full text-xs font-medium backdrop-blur-sm whitespace-nowrap shadow-sm">
+                        {getStepText()}
+                    </div>
+                    {/* Difficulty Badge */}
+                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                        ${difficulty === 'EASY' ? 'bg-green-500/80 text-white' : 
+                          difficulty === 'MEDIUM' ? 'bg-yellow-500/80 text-black' : 'bg-red-600/80 text-white'}
+                    `}>
+                        {difficulty === 'EASY' ? '简单' : difficulty === 'MEDIUM' ? '中等' : '困难'}
+                    </div>
                 </div>
             )}
 
@@ -165,7 +193,10 @@ export default function App() {
                     <div className="absolute inset-4 bg-stone-300 rounded-sm shadow-2xl rotate-1 border-b-8 border-stone-400"></div>
                     {phase === 'CUTTING' && (
                         <div className="absolute inset-0 z-10">
-                            <CuttingPhase onComplete={(val) => { updateScore('integrity', val); setPhase('TRANSFER'); }} />
+                            <CuttingPhase 
+                                gridSize={gridSize}
+                                onComplete={(val) => { updateScore('integrity', val); setPhase('TRANSFER'); }} 
+                            />
                         </div>
                     )}
                 </div>
@@ -177,6 +208,7 @@ export default function App() {
                     {phase === 'TRANSFER' && (
                         <div className="absolute inset-[-200px] z-20">
                             <TransferPhase 
+                                gridSize={gridSize}
                                 currentIntegrity={score.integrity}
                                 onComplete={(val) => { updateScore('integrity', val); setPhase('ALCOHOL'); }} 
                             />
@@ -185,13 +217,18 @@ export default function App() {
 
                     {phase === 'ALCOHOL' && (
                         <div className="absolute inset-0 z-20">
-                            <AlcoholPhase onComplete={(val) => { updateScore('alcoholPrecision', val); setPhase('SEASONING'); }} />
+                            <AlcoholPhase 
+                                difficulty={difficulty}
+                                onComplete={(val) => { updateScore('alcoholPrecision', val); setPhase('SEASONING'); }} 
+                            />
                         </div>
                     )}
 
                     {phase === 'SEASONING' && (
                         <div className="absolute inset-0 z-20">
-                            <SeasoningPhase onComplete={(val, label) => { 
+                            <SeasoningPhase 
+                                gridSize={gridSize}
+                                onComplete={(val, label) => { 
                                 updateScore('flavorBalance', val); 
                                 updateScore('flavorTitle', label);
                                 setPhase('BOTTLING'); 
@@ -201,7 +238,9 @@ export default function App() {
 
                     {phase === 'BOTTLING' && (
                         <div className="absolute inset-0 z-20">
-                            <BottlingPhase onComplete={(bottlingVal) => {
+                            <BottlingPhase 
+                                gridSize={gridSize}
+                                onComplete={(bottlingVal) => {
                                 updateScore('bottlingScore', bottlingVal);
                                 setPhase('RESULT');
                             }} />
@@ -219,10 +258,13 @@ export default function App() {
       </div>
 
       {/* 4. Full Screen Overlay Phases (Fixed Position) */}
-      {/* These are moved OUTSIDE the scaled world so they cover the full screen on mobile */}
       {phase === 'MENU' && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <MenuPhase onStart={resetGame} />
+              <MenuPhase 
+                onStart={resetGame} 
+                currentDifficulty={difficulty}
+                onSelectDifficulty={setDifficulty}
+              />
           </div>
       )}
 

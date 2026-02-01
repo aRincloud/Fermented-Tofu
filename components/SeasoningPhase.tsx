@@ -4,6 +4,7 @@ import { Check, MoveDown, MousePointer2, Smartphone } from 'lucide-react';
 
 interface SeasoningPhaseProps {
   onComplete: (balance: number, flavorLabel: string) => void;
+  gridSize: number;
 }
 
 type Ingredient = 'salt' | 'ginger' | 'huajiao' | 'chili_mild' | 'chili_med' | 'chili_hot';
@@ -40,7 +41,7 @@ const SeasoningSpoonCursor = ({ x, y, holdingType }: { x: number, y: number, hol
     );
 };
 
-export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
+export default function SeasoningPhase({ onComplete, gridSize }: SeasoningPhaseProps) {
   const [added, setAdded] = useState<Record<Ingredient, number>>({ 
       salt: 0, ginger: 0, huajiao: 0, chili_mild: 0, chili_med: 0, chili_hot: 0 
   });
@@ -63,12 +64,12 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
   const [isHoveringBowl, setIsHoveringBowl] = useState(false);
   const lastProgressTime = useRef(0);
 
-  // Generate visuals for Tofu blocks inside bowl
-  const tofuVisuals = useRef(Array.from({length: 8}).map((_, i) => ({
+  // Generate visuals for Tofu blocks based on grid size
+  const tofuVisuals = useRef(Array.from({length: Math.max(5, gridSize * gridSize - 2)}).map((_, i) => ({
       x: (Math.random() * 80) + 10,
       y: (Math.random() * 80) + 10,
       r: (Math.random() * 30) - 15,
-      scale: 0.8 + Math.random() * 0.4
+      scale: gridSize > 3 ? 0.6 + Math.random() * 0.3 : 0.8 + Math.random() * 0.4
   })));
 
   const addFeedback = (x: number, y: number, text: string) => {

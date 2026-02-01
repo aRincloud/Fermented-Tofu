@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Check } from 'lucide-react';
+import { Difficulty } from '../types';
 
 interface AlcoholPhaseProps {
   onComplete: (precision: number) => void;
+  difficulty: Difficulty;
 }
 
-export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
+export default function AlcoholPhase({ onComplete, difficulty }: AlcoholPhaseProps) {
   const [pouring, setPouring] = useState(false);
   const [fillLevel, setFillLevel] = useState(0); // 0 to 100
   const [completed, setCompleted] = useState(false);
@@ -13,9 +15,18 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
   // Use ref to track fillLevel for event listeners to avoid stale closure
   const fillLevelRef = useRef(0);
   
-  // Adjusted Difficulty
-  const TARGET_MIN = 60; 
-  const TARGET_MAX = 90; 
+  // Dynamic Target based on Difficulty
+  let TARGET_MIN = 60;
+  let TARGET_MAX = 90;
+
+  if (difficulty === 'MEDIUM') {
+      TARGET_MIN = 65;
+      TARGET_MAX = 85;
+  } else if (difficulty === 'HARD') {
+      TARGET_MIN = 72;
+      TARGET_MAX = 78;
+  }
+  
   const FILL_RATE = 0.4; 
   
   const requestRef = useRef<number>(0);
@@ -171,7 +182,7 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
                  </div>
             ) : (
                  <div className="text-stone-400 text-sm font-medium animate-pulse">
-                     倒酒直到绿色区域
+                     倒酒直到绿色区域 ({TARGET_MIN}-{TARGET_MAX}%)
                  </div>
             )}
         </div>

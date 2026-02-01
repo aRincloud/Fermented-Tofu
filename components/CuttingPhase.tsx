@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { GRID_SIZE, TofuBlock, Connection } from '../types';
+import { TofuBlock, Connection } from '../types';
 import { Move, AlertCircle } from 'lucide-react';
 
 interface CuttingPhaseProps {
   onComplete: (integrity: number) => void;
+  gridSize: number;
 }
 
 // Spatula Cursor
@@ -31,12 +32,12 @@ const SpatulaCursor = ({ x, y, isVertical, isCutting }: { x: number, y: number, 
   );
 };
 
-export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
+export default function CuttingPhase({ onComplete, gridSize }: CuttingPhaseProps) {
   const [blocks, setBlocks] = useState<TofuBlock[]>(() => {
     const b: TofuBlock[] = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        b.push({ id: r * GRID_SIZE + c, row: r, col: c, state: 'fresh', x: 0, y: 0 });
+    for (let r = 0; r < gridSize; r++) {
+      for (let c = 0; c < gridSize; c++) {
+        b.push({ id: r * gridSize + c, row: r, col: c, state: 'fresh', x: 0, y: 0 });
       }
     }
     return b;
@@ -44,23 +45,23 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
 
   const [connections, setConnections] = useState<Connection[]>(() => {
     const c: Connection[] = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let col = 0; col < GRID_SIZE - 1; col++) {
+    for (let r = 0; r < gridSize; r++) {
+      for (let col = 0; col < gridSize - 1; col++) {
         c.push({
           id: `h-${r}-${col}`,
-          blockA: r * GRID_SIZE + col,
-          blockB: r * GRID_SIZE + col + 1,
+          blockA: r * gridSize + col,
+          blockB: r * gridSize + col + 1,
           orientation: 'horizontal', 
           severed: false
         });
       }
     }
-    for (let r = 0; r < GRID_SIZE - 1; r++) {
-      for (let col = 0; col < GRID_SIZE; col++) {
+    for (let r = 0; r < gridSize - 1; r++) {
+      for (let col = 0; col < gridSize; col++) {
         c.push({
           id: `v-${r}-${col}`,
-          blockA: r * GRID_SIZE + col,
-          blockB: (r + 1) * GRID_SIZE + col,
+          blockA: r * gridSize + col,
+          blockB: (r + 1) * gridSize + col,
           orientation: 'vertical',
           severed: false
         });
@@ -130,7 +131,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
     const { x, y } = getLocalPoint(e as any);
     const rect = containerRef.current.getBoundingClientRect();
     const w = rect.width;
-    const blockSize = w / GRID_SIZE;
+    const blockSize = w / gridSize;
     
     // 1. Connection Hit Logic (Good Cuts)
     setConnections(prev => prev.map(conn => {
@@ -176,7 +177,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
         return block;
     }));
 
-  }, [blocks, isVertical, isCutting]);
+  }, [blocks, isVertical, isCutting, gridSize]);
 
   useEffect(() => {
     // Attach to window to catch moves outside component
@@ -220,15 +221,15 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
         className="relative aspect-square w-full max-w-[320px] bg-stone-900/10 rounded-lg touch-none select-none"
       >
         {blocks.map(block => {
-            const sizePercent = 100 / GRID_SIZE;
+            const sizePercent = 100 / gridSize;
             const GAP_SIZE = 4;
             let marginTop = 0, marginLeft = 0, marginRight = 0, marginBottom = 0;
 
             if (block.row > 0) {
-               const topConn = connections.find(c => c.orientation === 'vertical' && c.blockA === block.id - GRID_SIZE);
+               const topConn = connections.find(c => c.orientation === 'vertical' && c.blockA === block.id - gridSize);
                if (topConn?.severed) marginTop = GAP_SIZE;
             }
-            if (block.row < GRID_SIZE - 1) {
+            if (block.row < gridSize - 1) {
                 const botConn = connections.find(c => c.orientation === 'vertical' && c.blockA === block.id);
                 if (botConn?.severed) marginBottom = GAP_SIZE;
             }
@@ -236,7 +237,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
                 const leftConn = connections.find(c => c.orientation === 'horizontal' && c.blockA === block.id - 1);
                 if (leftConn?.severed) marginLeft = GAP_SIZE;
             }
-            if (block.col < GRID_SIZE - 1) {
+            if (block.col < gridSize - 1) {
                 const rightConn = connections.find(c => c.orientation === 'horizontal' && c.blockA === block.id);
                 if (rightConn?.severed) marginRight = GAP_SIZE;
             }
@@ -261,9 +262,9 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
                   shadow-sm
                 `}>
                    {(!marginTop && block.row > 0) && <div className="absolute -top-4 left-0 right-0 h-6 bg-stone-100 blur-sm z-10"></div>}
-                   {(!marginBottom && block.row < GRID_SIZE - 1) && <div className="absolute -bottom-4 left-0 right-0 h-6 bg-stone-100 blur-sm z-10"></div>}
+                   {(!marginBottom && block.row < gridSize - 1) && <div className="absolute -bottom-4 left-0 right-0 h-6 bg-stone-100 blur-sm z-10"></div>}
                    {(!marginLeft && block.col > 0) && <div className="absolute top-0 -left-4 bottom-0 w-6 bg-stone-100 blur-sm z-10"></div>}
-                   {(!marginRight && block.col < GRID_SIZE - 1) && <div className="absolute top-0 -right-4 bottom-0 w-6 bg-stone-100 blur-sm z-10"></div>}
+                   {(!marginRight && block.col < gridSize - 1) && <div className="absolute top-0 -right-4 bottom-0 w-6 bg-stone-100 blur-sm z-10"></div>}
 
                    <div className="absolute inset-0 mold-texture opacity-80 z-20"></div>
                    <div className="absolute inset-[-4px] border-4 border-white/60 blur-[2px] rounded-sm z-20"></div>

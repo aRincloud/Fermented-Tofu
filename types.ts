@@ -7,6 +7,8 @@ export type GamePhase =
   | 'BOTTLING' 
   | 'RESULT';
 
+export type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
+
 export interface TofuBlock {
   id: number;
   row: number;
@@ -31,6 +33,7 @@ export interface GameScore {
   bottlingScore: number; // 0-100
   flavorTitle: string; // e.g. "微麻中辣"
   total: number;
+  difficulty: Difficulty;
 }
 
 export interface LeaderboardEntry {
@@ -38,7 +41,7 @@ export interface LeaderboardEntry {
   score: number;
   date: string;
   titles: string[]; // e.g., ["Precise Cutter", "Master Shaker"]
+  difficulty: Difficulty;
 }
 
-export const GRID_SIZE = 3;
 export const STORAGE_KEY = 'meidoufu_leaderboard';

@@ -46,7 +46,8 @@ export default function ResultPhase({ score, onRestart }: ResultPhaseProps) {
       name: name.trim(),
       score: finalScore,
       date: new Date().toISOString(),
-      titles: [rating.label]
+      titles: [rating.label],
+      difficulty: score.difficulty
     };
 
     const updated = [...leaders, newEntry]

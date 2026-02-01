@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { GRID_SIZE, TofuBlock } from '../types';
+import { TofuBlock } from '../types';
 import { ArrowDown, Trash2 } from 'lucide-react';
 
 interface TransferPhaseProps {
   currentIntegrity: number;
   onComplete: (integrity: number) => void;
+  gridSize: number;
 }
 
 // Spatula Cursor for Transfer
@@ -43,12 +44,12 @@ const TransferSpatulaCursor = ({ x, y, holding }: { x: number, y: number, holdin
   );
 };
 
-export default function TransferPhase({ currentIntegrity, onComplete }: TransferPhaseProps) {
+export default function TransferPhase({ currentIntegrity, onComplete, gridSize }: TransferPhaseProps) {
   const [blocks, setBlocks] = useState<TofuBlock[]>(() => {
     const b: TofuBlock[] = [];
-    for (let r = 0; r < GRID_SIZE; r++) {
-      for (let c = 0; c < GRID_SIZE; c++) {
-        b.push({ id: r * GRID_SIZE + c, row: r, col: c, state: 'fresh', x: 0, y: 0 });
+    for (let r = 0; r < gridSize; r++) {
+      for (let c = 0; c < gridSize; c++) {
+        b.push({ id: r * gridSize + c, row: r, col: c, state: 'fresh', x: 0, y: 0 });
       }
     }
     return b;
@@ -133,7 +134,7 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
             {/* Board Container */}
             <div className="relative aspect-square w-full max-w-[280px] bg-stone-900/10 rounded-lg touch-none select-none">
                 {blocks.map(block => {
-                    const sizePercent = 100 / GRID_SIZE;
+                    const sizePercent = 100 / gridSize;
                     const GAP_SIZE = 4;
 
                     let marginTop = 0;
@@ -142,9 +143,9 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
                     let marginBottom = 0;
 
                     if (block.row > 0) marginTop = GAP_SIZE;
-                    if (block.row < GRID_SIZE - 1) marginBottom = GAP_SIZE;
+                    if (block.row < gridSize - 1) marginBottom = GAP_SIZE;
                     if (block.col > 0) marginLeft = GAP_SIZE;
-                    if (block.col < GRID_SIZE - 1) marginRight = GAP_SIZE;
+                    if (block.col < gridSize - 1) marginRight = GAP_SIZE;
                     
                     const style = {
                         top: `${block.row * sizePercent}%`,

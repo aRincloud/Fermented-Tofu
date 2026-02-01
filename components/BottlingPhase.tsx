@@ -4,6 +4,7 @@ import { Archive, ArrowRight, Check, Trash2 } from 'lucide-react';
 
 interface BottlingPhaseProps {
   onComplete: (score: number) => void;
+  gridSize: number;
 }
 
 // Draggable Seasoned Tofu Cursor
@@ -41,10 +42,10 @@ const DragLidCursor = ({ x, y }: { x: number, y: number }) => {
     );
 };
 
-export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
-  // Simulate previous phase state: 8 pieces scattered in the bowl
+export default function BottlingPhase({ onComplete, gridSize }: BottlingPhaseProps) {
+  // Simulate previous phase state: scattered pieces based on grid size
   const [bowlPieces, setBowlPieces] = useState<{id: number, x: number, y: number, r: number}[]>(() => 
-    Array.from({length: 8}).map((_, i) => ({
+    Array.from({length: Math.max(5, gridSize * gridSize - 2)}).map((_, i) => ({
       id: i,
       x: (Math.random() * 50) + 25, // 25-75% spread
       y: (Math.random() * 50) + 25,
@@ -119,7 +120,7 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                     setJarContents(prev => [...prev, {
                         id: piece.id,
                         x: (Math.random() * 60) + 20, // 20-80% horizontal
-                        y: 90 - (prev.length * 10) - (Math.random() * 5), // Stack vertically
+                        y: 90 - (prev.length * (80/ (gridSize*gridSize))) - (Math.random() * 5), // Stack vertically logic
                         r: (Math.random() * 20) - 10 // Less rotation in jar
                     }]);
                     if (navigator.vibrate) navigator.vibrate(20);
@@ -150,7 +151,7 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
         window.removeEventListener('pointermove', handleGlobalMove);
         window.removeEventListener('pointerup', handleGlobalUp);
     };
-  }, [draggingType, draggingId, bowlPieces]); // Dependencies for closure state
+  }, [draggingType, draggingId, bowlPieces, gridSize]); 
 
   const handleSealClick = () => {
       if (!isLidOn || isSealed) return;
@@ -181,10 +182,12 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                         <div
                             key={p.id}
                             onPointerDown={(e) => handlePointerDown('tofu', e, p.id)}
-                            className="absolute w-16 h-16 bg-white rounded-sm shadow-md border border-stone-100 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform touch-none"
+                            className="absolute bg-white rounded-sm shadow-md border border-stone-100 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform touch-none"
                             style={{
                                 left: `${p.x}%`,
                                 top: `${p.y}%`,
+                                width: gridSize > 4 ? '40px' : '64px',
+                                height: gridSize > 4 ? '40px' : '64px',
                                 transform: `translate(-50%, -50%) rotate(${p.r}deg)`,
                                 zIndex: 10
                             }}
@@ -251,8 +254,10 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                     {jarContents.map((item, i) => (
                         <div 
                             key={item.id}
-                            className="absolute w-12 h-12 bg-white rounded-sm border border-stone-200 shadow-sm transition-all duration-300 ease-out animate-pop-in"
+                            className="absolute bg-white rounded-sm border border-stone-200 shadow-sm transition-all duration-300 ease-out animate-pop-in"
                             style={{
+                                width: gridSize > 4 ? '32px' : '48px',
+                                height: gridSize > 4 ? '32px' : '48px',
                                 left: `${item.x}%`,
                                 top: `${item.y}%`,
                                 transform: `translate(-50%, -50%) rotate(${item.r}deg)`
