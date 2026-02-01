@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, MoveDown, MousePointer2 } from 'lucide-react';
+import { Check, MoveDown, MousePointer2, Smartphone } from 'lucide-react';
 
 interface SeasoningPhaseProps {
   onComplete: (balance: number) => void;
@@ -60,6 +60,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
   
   const bowlRef = useRef<HTMLDivElement>(null);
   const [isHoveringBowl, setIsHoveringBowl] = useState(false);
+  const lastProgressTime = useRef(0);
 
   // Generate visuals for Tofu blocks inside bowl
   const tofuVisuals = useRef(Array.from({length: 8}).map((_, i) => ({
@@ -71,34 +72,62 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
 
   // Motion Logic (Mobile)
   const requestMotionPermission = async () => {
-    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+    // Check if DeviceMotionEvent is defined and has requestPermission
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       try {
         const permissionState = await (DeviceMotionEvent as any).requestPermission();
-        if (permissionState === 'granted') setPermissionGranted(true);
-      } catch (e) { console.error(e); }
+        if (permissionState === 'granted') {
+            setPermissionGranted(true);
+        } else {
+            alert('Permission denied. Shake feature requires motion access.');
+        }
+      } catch (e) { 
+          console.error(e);
+          // Fallback for some non-standard implementations
+          setPermissionGranted(true);
+      }
     } else {
+      // Non-iOS devices typically don't need explicit permission for this
       setPermissionGranted(true);
     }
   };
 
   const updateMix = (amount: number, intensity: number) => {
      setShakeIntensity(intensity);
-     setCoatingLevel(prev => Math.min(100, prev + amount));
-     if (navigator.vibrate) navigator.vibrate(50);
      
-     // Decay intensity
-     setTimeout(() => setShakeIntensity(prev => Math.max(0, prev - 10)), 100);
+     // Throttling progress updates slightly to prevent instant finish
+     const now = Date.now();
+     if (now - lastProgressTime.current > 100) {
+        setCoatingLevel(prev => Math.min(100, prev + amount));
+        if (amount > 0 && navigator.vibrate) navigator.vibrate(40);
+        lastProgressTime.current = now;
+     }
+     
+     // Decay intensity visual quicker
+     setTimeout(() => setShakeIntensity(prev => Math.max(0, prev - (intensity * 0.5))), 100);
   };
 
   useEffect(() => {
+    // Auto-enable for devices that don't require permission (Android/Desktop)
+    // iOS 13+ has requestPermission function, others don't.
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof (DeviceMotionEvent as any).requestPermission !== 'function') {
+        setPermissionGranted(true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!permissionGranted) return;
+    
     let lastX: number | null = null;
     let lastY: number | null = null;
     let lastZ: number | null = null;
-    const threshold = 15;
+    // Lowered threshold for easier shaking
+    const threshold = 8; 
 
     const handleMotion = (event: DeviceMotionEvent) => {
       if (coatingLevel >= 100) return;
+      
+      // Use acceleration including gravity for broader compatibility
       const acc = event.accelerationIncludingGravity;
       if (!acc) return;
       const { x, y, z } = acc;
@@ -106,12 +135,16 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
 
       if (lastX !== null && lastY !== null && lastZ !== null) {
         const delta = Math.abs(x - lastX) + Math.abs(y - lastY) + Math.abs(z - lastZ);
+        
         if (delta > threshold) {
-           updateMix(2, Math.min(100, delta * 3));
+           // Map heavy shake (delta ~20) to good progress
+           const progress = Math.min(5, delta * 0.2); 
+           updateMix(progress, Math.min(50, delta * 2));
         }
       }
       lastX = x; lastY = y; lastZ = z;
     };
+    
     window.addEventListener('devicemotion', handleMotion);
     return () => window.removeEventListener('devicemotion', handleMotion);
   }, [permissionGranted, coatingLevel]);
@@ -167,6 +200,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
         const dist = Math.sqrt(dx*dx + dy*dy);
         
         if (dist > 5) { 
+            // Mouse shake logic
             updateMix(dist * 0.1, Math.min(100, dist * 2));
             lastMousePos.current = { x: clientX, y: clientY };
         }
@@ -356,10 +390,13 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
              </div>
          )}
          
-         <div className="mt-2 text-center">
+         <div className="mt-2 text-center flex flex-col items-center">
             {!permissionGranted && coatingLevel < 100 && (
-                 <button onClick={requestMotionPermission} className="text-xs text-stone-300 underline">
-                    On Mobile? Enable Motion
+                 <button 
+                    onClick={requestMotionPermission} 
+                    className="flex items-center gap-2 bg-stone-700 hover:bg-stone-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transition-all active:scale-95"
+                 >
+                    <Smartphone size={16} /> Enable Phone Shake
                 </button>
             )}
          </div>

@@ -62,8 +62,14 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
   const bowlRef = useRef<HTMLDivElement>(null);
 
   // Handle Dragging
-  const handlePointerDown = (id: number) => {
+  const handlePointerDown = (id: number, e: React.MouseEvent | React.TouchEvent) => {
     if (navigator.vibrate) navigator.vibrate(20);
+    
+    // IMMEDIATE UPDATE: Snap spatula to finger position immediately
+    const clientX = 'touches' in e ? e.touches[0].clientX : (e as any).clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : (e as any).clientY;
+    setCursorPos({ x: clientX, y: clientY });
+    
     setDraggingId(id);
   };
 
@@ -71,7 +77,6 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
     const clientX = 'touches' in e ? e.touches[0].clientX : (e as any).clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as any).clientY;
     
-    // Direct mapping to match cutting phase
     setCursorPos({ x: clientX, y: clientY });
   };
 
@@ -169,8 +174,8 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
                     return (
                     <div
                         key={block.id}
-                        onMouseDown={() => handlePointerDown(block.id)}
-                        onTouchStart={() => handlePointerDown(block.id)}
+                        onMouseDown={(e) => handlePointerDown(block.id, e)}
+                        onTouchStart={(e) => handlePointerDown(block.id, e)}
                         className="absolute z-10 hover:scale-105 transition-transform"
                         style={style}
                     >

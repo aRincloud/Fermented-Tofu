@@ -70,6 +70,12 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
   const [isHoveringJar, setIsHoveringJar] = useState(false);
 
   const handlePointerDown = (type: 'tofu' | 'lid', e: React.MouseEvent | React.TouchEvent, id?: number) => {
+      // Critical for mobile touch to work properly without scrolling interference
+      // e.stopPropagation(); 
+      if ('touches' in e) {
+          // e.preventDefault(); // Commented out to avoid passive listener warnings in some react versions, handled by CSS touch-none usually
+      }
+
       if (isSealed) return;
       if (type === 'tofu' && id === undefined) return;
       if (type === 'lid' && bowlPieces.length > 0) return; // Cant close until empty
@@ -81,7 +87,7 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
       setDraggingType(type);
       if (id !== undefined) setDraggingId(id);
       
-      // Update both Ref and State
+      // Update both Ref and State IMMEDIATELY so it snaps to finger
       cursorPosRef.current = { x: clientX, y: clientY };
       setCursorVisual({ x: clientX, y: clientY });
       
@@ -187,7 +193,7 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                         <div
                             key={p.id}
                             onMouseDown={(e) => handlePointerDown('tofu', e, p.id)}
-                            onTouchStart={(e) => handlePointerDown('tofu', e, p.id)}
+                            onTouchStart={(e) => { e.preventDefault(); handlePointerDown('tofu', e, p.id); }}
                             className="absolute w-16 h-16 bg-white rounded-sm shadow-md border border-stone-100 cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
                             style={{
                                 left: `${p.x}%`,
@@ -222,7 +228,7 @@ export default function BottlingPhase({ onComplete }: BottlingPhaseProps) {
                 <div 
                     className="absolute top-20 -left-20 w-36 h-12 bg-red-700 rounded-sm shadow-xl border-b-4 border-red-900 cursor-grab animate-pulse flex items-center justify-center"
                     onMouseDown={(e) => handlePointerDown('lid', e)}
-                    onTouchStart={(e) => handlePointerDown('lid', e)}
+                    onTouchStart={(e) => { e.preventDefault(); handlePointerDown('lid', e); }}
                 >
                      <div className="text-center text-[10px] text-white/50 font-bold tracking-widest">DRAG ME</div>
                 </div>

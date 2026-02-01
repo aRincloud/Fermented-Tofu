@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { GRID_SIZE, TofuBlock, Connection } from '../types';
-import { RotateCw } from 'lucide-react';
+import { Move } from 'lucide-react';
 
 interface CuttingPhaseProps {
   onComplete: (integrity: number) => void;
@@ -73,6 +73,8 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
   const [isVertical, setIsVertical] = useState(false); 
   const [isCutting, setIsCutting] = useState(false); 
   
+  // Track previous position for direction calculation
+  const lastPosRef = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
   const getLocalPoint = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
@@ -86,7 +88,14 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
     };
   };
 
-  const handleStart = () => setIsCutting(true);
+  const handleStart = (e: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
+      // Capture start position to prevent jumpy rotation on initial click
+      const clientX = 'touches' in e ? e.touches[0].clientX : (e as any).clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : (e as any).clientY;
+      lastPosRef.current = { x: clientX, y: clientY };
+      setIsCutting(true);
+  };
+  
   const handleEnd = () => setIsCutting(false);
 
   const handleMove = useCallback((e: MouseEvent | TouchEvent) => {
@@ -94,6 +103,20 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
     const clientY = 'touches' in e ? e.touches[0].clientY : (e as MouseEvent).clientY;
     
     setCursorPos({ x: clientX, y: clientY }); 
+
+    // Auto-Rotation Logic
+    const dx = clientX - lastPosRef.current.x;
+    const dy = clientY - lastPosRef.current.y;
+    const threshold = 3; // Minimum movement to trigger rotation change
+
+    if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+        if (Math.abs(dy) > Math.abs(dx)) {
+            setIsVertical(true);
+        } else {
+            setIsVertical(false);
+        }
+        lastPosRef.current = { x: clientX, y: clientY };
+    }
 
     if (!containerRef.current || !isCutting) return;
 
@@ -108,6 +131,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
       let hit = false;
       const bA = blocks[conn.blockA];
       
+      // Hit detection logic adjusted for knife orientation
       if (!isVertical && conn.orientation === 'vertical') {
         const cx = (bA.col + 0.5) * blockSize;
         const cy = (bA.row + 1) * blockSize;
@@ -126,16 +150,17 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
   }, [blocks, isVertical, isCutting]);
 
   useEffect(() => {
-    window.addEventListener('mousedown', handleStart);
-    window.addEventListener('touchstart', handleStart);
+    // Attach to window to catch moves outside component
+    window.addEventListener('mousedown', handleStart as any);
+    window.addEventListener('touchstart', handleStart as any);
     window.addEventListener('mouseup', handleEnd);
     window.addEventListener('touchend', handleEnd);
     window.addEventListener('mousemove', handleMove as any);
     window.addEventListener('touchmove', handleMove as any);
 
     return () => {
-        window.removeEventListener('mousedown', handleStart);
-        window.removeEventListener('touchstart', handleStart);
+        window.removeEventListener('mousedown', handleStart as any);
+        window.removeEventListener('touchstart', handleStart as any);
         window.removeEventListener('mouseup', handleEnd);
         window.removeEventListener('touchend', handleEnd);
         window.removeEventListener('mousemove', handleMove as any);
@@ -219,20 +244,11 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
         })}
       </div>
 
-      {/* Manual Rotate Button (Moved to Bottom Center) */}
-      <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 flex flex-col gap-2 items-center z-40">
-         <button 
-            onClick={() => setIsVertical(!isVertical)}
-            className="w-20 h-20 bg-stone-100 rounded-full shadow-lg border-4 border-stone-300 flex flex-col items-center justify-center active:scale-95 transition-transform cursor-pointer"
-         >
-            <RotateCw size={32} className="text-stone-700 mb-1" />
-            <span className="text-[10px] font-bold text-stone-600 uppercase">Rotate</span>
-         </button>
-         
-         {/* Instruction Bubble Integrated here */}
-         <div className="bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm flex items-center gap-2 text-white text-xs whitespace-nowrap">
-             <div className={`w-6 h-1 bg-stone-200 rounded transition-transform ${isVertical ? 'rotate-90' : ''}`}></div>
-             <span>Current: {isVertical ? 'Vertical' : 'Horizontal'} Cut</span>
+      {/* Instructions */}
+      <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 z-40">
+         <div className="bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 text-white text-sm animate-pulse whitespace-nowrap">
+             <Move size={16} />
+             <span>Swipe to cut • Auto-rotates</span>
          </div>
       </div>
     </div>
