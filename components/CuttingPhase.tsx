@@ -133,6 +133,24 @@ export default function CuttingPhase({ onComplete, gridSize }: CuttingPhaseProps
     const w = rect.width;
     const blockSize = w / gridSize;
     
+    // Difficulty Adjustments based on gridSize
+    // gridSize 3 (Easy): High tolerance, Large safe margin
+    // gridSize 4 (Medium): Medium tolerance
+    // gridSize 5 (Hard): Tight tolerance, Small safe margin (easy to damage)
+    let cutToleranceX = 25;
+    let cutToleranceY = 15;
+    let safetyMargin = 15; // The margin from the edge where cutting is "safe" (not damaging meat)
+
+    if (gridSize === 4) {
+        cutToleranceX = 18;
+        cutToleranceY = 10;
+        safetyMargin = 10;
+    } else if (gridSize === 5) {
+        cutToleranceX = 12;
+        cutToleranceY = 8;
+        safetyMargin = 5; // Very risky
+    }
+
     // 1. Connection Hit Logic (Good Cuts)
     setConnections(prev => prev.map(conn => {
       if (conn.severed) return conn;
@@ -144,12 +162,12 @@ export default function CuttingPhase({ onComplete, gridSize }: CuttingPhaseProps
       if (!isVertical && conn.orientation === 'vertical') {
         const cx = (bA.col + 0.5) * blockSize;
         const cy = (bA.row + 1) * blockSize;
-        if (Math.abs(x - cx) < 25 && Math.abs(y - cy) < 15) hit = true;
+        if (Math.abs(x - cx) < cutToleranceX && Math.abs(y - cy) < cutToleranceY) hit = true;
       } 
       else if (isVertical && conn.orientation === 'horizontal') {
         const cx = (bA.col + 1) * blockSize; 
         const cy = (bA.row + 0.5) * blockSize;
-        if (Math.abs(x - cx) < 15 && Math.abs(y - cy) < 25) hit = true;
+        if (Math.abs(x - cx) < cutToleranceY && Math.abs(y - cy) < cutToleranceX) hit = true;
       }
 
       if (hit && navigator.vibrate) navigator.vibrate(10);
@@ -164,9 +182,9 @@ export default function CuttingPhase({ onComplete, gridSize }: CuttingPhaseProps
         const by = block.row * blockSize;
         
         // Check if cursor is deep inside the block
-        const margin = 15; // Buffer from edges
-        const inX = x > bx + margin && x < bx + blockSize - margin;
-        const inY = y > by + margin && y < by + blockSize - margin;
+        // Using dynamic safetyMargin. Smaller margin = bigger danger zone.
+        const inX = x > bx + safetyMargin && x < bx + blockSize - safetyMargin;
+        const inY = y > by + safetyMargin && y < by + blockSize - safetyMargin;
         
         if (inX && inY) {
             // It's a hit on the block meat!

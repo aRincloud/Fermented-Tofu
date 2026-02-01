@@ -83,9 +83,18 @@ export default function TransferPhase({ currentIntegrity, onComplete, gridSize }
         let success = false;
         if (bowlRef.current) {
             const bowlRect = bowlRef.current.getBoundingClientRect();
-            // Adjust collision check to be near the bowl
-            const hitX = e.clientX >= bowlRect.left && e.clientX <= bowlRect.right;
-            const hitY = e.clientY >= (bowlRect.top - 80) && e.clientY <= bowlRect.bottom;
+            
+            // Difficulty: Shrink the hit box on Harder modes
+            // Easy (3): No padding
+            // Medium (4): 20px padding (Requires more center precision)
+            // Hard (5): 40px padding (Strict precision)
+            let paddingX = 0;
+            let paddingY = 0;
+            if (gridSize === 4) { paddingX = 20; paddingY = 10; }
+            if (gridSize === 5) { paddingX = 40; paddingY = 20; }
+
+            const hitX = e.clientX >= (bowlRect.left + paddingX) && e.clientX <= (bowlRect.right - paddingX);
+            const hitY = e.clientY >= (bowlRect.top - 80 + paddingY) && e.clientY <= (bowlRect.bottom - paddingY);
             
             if (hitX && hitY) {
                 success = true;
@@ -112,7 +121,7 @@ export default function TransferPhase({ currentIntegrity, onComplete, gridSize }
         window.removeEventListener('pointermove', handleGlobalMove);
         window.removeEventListener('pointerup', handleGlobalUp);
     };
-  }, [draggingId]); 
+  }, [draggingId, gridSize]); 
 
 
   useEffect(() => {

@@ -15,19 +15,17 @@ export default function AlcoholPhase({ onComplete, difficulty }: AlcoholPhasePro
   // Use ref to track fillLevel for event listeners to avoid stale closure
   const fillLevelRef = useRef(0);
   
-  // Dynamic Target based on Difficulty
-  let TARGET_MIN = 60;
-  let TARGET_MAX = 90;
+  // Fixed Target Window (30% size) for all difficulties
+  const TARGET_MIN = 60;
+  const TARGET_MAX = 90;
 
+  // Dynamic Speed based on Difficulty
+  let FILL_RATE = 0.4; // Easy
   if (difficulty === 'MEDIUM') {
-      TARGET_MIN = 65;
-      TARGET_MAX = 85;
+      FILL_RATE = 0.8; // Fast
   } else if (difficulty === 'HARD') {
-      TARGET_MIN = 72;
-      TARGET_MAX = 78;
+      FILL_RATE = 1.3; // Very Fast
   }
-  
-  const FILL_RATE = 0.4; 
   
   const requestRef = useRef<number>(0);
 
