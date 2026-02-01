@@ -248,7 +248,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
       <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 z-40">
          <div className="bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 text-white text-sm animate-pulse whitespace-nowrap">
              <Move size={16} />
-             <span>Swipe to cut • Auto-rotates</span>
+             <span>滑动切割 • 自动旋转</span>
          </div>
       </div>
     </div>

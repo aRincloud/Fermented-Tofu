@@ -15,6 +15,8 @@ export default function App() {
     integrity: 100,
     alcoholPrecision: 0,
     flavorBalance: 0,
+    bottlingScore: 100,
+    flavorTitle: '',
     total: 0
   });
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -52,55 +54,35 @@ export default function App() {
   }, []);
 
   const resetGame = () => {
-    setScore({ integrity: 100, alcoholPrecision: 0, flavorBalance: 0, total: 0 });
+    setScore({ integrity: 100, alcoholPrecision: 0, flavorBalance: 0, bottlingScore: 100, flavorTitle: '', total: 0 });
     setPhase('CUTTING');
   };
 
-  const updateScore = (key: keyof GameScore, value: number) => {
+  const updateScore = (key: keyof GameScore, value: number | string) => {
     setScore(prev => ({ ...prev, [key]: value }));
   };
 
   // Camera Logic
-  // CRITICAL: World Center is X=600.
-  // We use absolute positioning to lock World X=600 to Screen Center.
-  // So:
-  // To center Board (X=200): Translate = 600 - 200 = 400.
-  // To center Bowl (X=700): Translate = 600 - 700 = -100.
   const cameraTransform = useMemo(() => {
     switch (phase) {
-      case 'MENU':
-        return 'translate(0px, 0px)';
-      
-      case 'CUTTING':
-        return `translate(400px, 0px)`; 
-      
-      case 'TRANSFER':
-        // Vertical Layout: Center on Zone 2 (X=700)
-        return `translate(-100px, 0px)`;
-      
-      case 'ALCOHOL':
-        return `translate(-100px, 0px)`;
-      
-      case 'SEASONING':
-        return `translate(-100px, 0px)`;
-      
-      case 'BOTTLING':
-        return `translate(-100px, 0px)`;
-      
-      case 'RESULT':
-        return 'translate(0px, 0px)';
-      default:
-        return 'translate(0px, 0px)';
+      case 'MENU': return 'translate(0px, 0px)';
+      case 'CUTTING': return `translate(400px, 0px)`; 
+      case 'TRANSFER': return `translate(-100px, 0px)`;
+      case 'ALCOHOL': return `translate(-100px, 0px)`;
+      case 'SEASONING': return `translate(-100px, 0px)`;
+      case 'BOTTLING': return `translate(-100px, 0px)`;
+      case 'RESULT': return 'translate(0px, 0px)';
+      default: return 'translate(0px, 0px)';
     }
   }, [phase]);
 
   const getStepText = () => {
     switch(phase) {
-        case 'CUTTING': return 'Step 1: Cut';
-        case 'TRANSFER': return 'Step 2: Transfer';
-        case 'ALCOHOL': return 'Step 3: Spirit';
-        case 'SEASONING': return 'Step 4: Season';
-        case 'BOTTLING': return 'Step 5: Jar';
+        case 'CUTTING': return '第一步：切割';
+        case 'TRANSFER': return '第二步：转移';
+        case 'ALCOHOL': return '第三步：注酒';
+        case 'SEASONING': return '第四步：裹料';
+        case 'BOTTLING': return '第五步：装瓶';
         default: return '';
     }
   }
@@ -114,7 +96,7 @@ export default function App() {
             {phase !== 'MENU' && phase !== 'RESULT' && (
                 <div className="bg-white/90 backdrop-blur shadow-lg rounded-2xl p-2 flex gap-3 border-2 border-stone-200 animate-slide-down origin-top-left transition-transform scale-90 md:scale-100 origin-top-left">
                     <div className="text-center px-1">
-                        <div className="text-[10px] text-stone-500 font-bold uppercase">Integrity</div>
+                        <div className="text-[10px] text-stone-500 font-bold uppercase">完整度</div>
                         <div className={`text-lg font-mono font-bold ${score.integrity < 80 ? 'text-red-500' : 'text-green-600'}`}>
                             {Math.round(score.integrity)}%
                         </div>
@@ -123,7 +105,7 @@ export default function App() {
                         <>
                             <div className="w-px bg-stone-200"></div>
                             <div className="text-center px-1">
-                                <div className="text-[10px] text-stone-500 font-bold uppercase">Spirit</div>
+                                <div className="text-[10px] text-stone-500 font-bold uppercase">酒精度</div>
                                 <div className="text-lg font-mono font-bold text-blue-600">
                                     {score.alcoholPrecision > 0 ? Math.round(score.alcoholPrecision) + '%' : '-'}
                                 </div>
@@ -134,7 +116,7 @@ export default function App() {
                         <>
                              <div className="w-px bg-stone-200"></div>
                             <div className="text-center px-1">
-                                <div className="text-[10px] text-stone-500 font-bold uppercase">Flavor</div>
+                                <div className="text-[10px] text-stone-500 font-bold uppercase">入味</div>
                                 <div className="text-lg font-mono font-bold text-amber-600">
                                     {score.flavorBalance > 0 ? Math.round(score.flavorBalance) + '%' : '-'}
                                 </div>
@@ -159,13 +141,12 @@ export default function App() {
          </div>
       </div>
 
-      {/* 2. Responsive Wrapper - NOW ABSOLUTELY CENTERED */}
+      {/* 2. Responsive Wrapper */}
       <div 
         className="absolute top-1/2 left-1/2 transition-transform duration-300 ease-out will-change-transform origin-center"
         style={{ 
             width: '1200px', 
             height: '600px',
-            // Combine scale with absolute centering translate
             transform: `translate(-50%, -50%) scale(${baseScale})` 
         }}
       >
@@ -179,7 +160,7 @@ export default function App() {
 
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex items-center justify-center">
                 
-                {/* ZONE 1: Cutting Board (Center X: 200) */}
+                {/* ZONE 1: Cutting Board */}
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[400px] h-[400px] flex items-center justify-center">
                     <div className="absolute inset-4 bg-stone-300 rounded-sm shadow-2xl rotate-1 border-b-8 border-stone-400"></div>
                     {phase === 'CUTTING' && (
@@ -189,12 +170,11 @@ export default function App() {
                     )}
                 </div>
 
-                {/* ZONE 2: Bowl (Center X: 700) */}
+                {/* ZONE 2: Bowl */}
                 <div className="absolute left-[500px] top-1/2 -translate-y-1/2 w-[400px] h-[400px] flex items-center justify-center">
                     <div className="absolute bottom-10 w-64 h-12 bg-black/40 blur-xl rounded-[50%]"></div>
                     
                     {phase === 'TRANSFER' && (
-                        // Ghost Board relative to Bowl
                         <div className="absolute inset-[-200px] z-20">
                             <TransferPhase 
                                 currentIntegrity={score.integrity}
@@ -211,13 +191,20 @@ export default function App() {
 
                     {phase === 'SEASONING' && (
                         <div className="absolute inset-0 z-20">
-                            <SeasoningPhase onComplete={(val) => { updateScore('flavorBalance', val); setPhase('BOTTLING'); }} />
+                            <SeasoningPhase onComplete={(val, label) => { 
+                                updateScore('flavorBalance', val); 
+                                updateScore('flavorTitle', label);
+                                setPhase('BOTTLING'); 
+                            }} />
                         </div>
                     )}
 
                     {phase === 'BOTTLING' && (
                         <div className="absolute inset-0 z-20">
-                            <BottlingPhase onComplete={() => setPhase('RESULT')} />
+                            <BottlingPhase onComplete={(bottlingVal) => {
+                                updateScore('bottlingScore', bottlingVal);
+                                setPhase('RESULT');
+                            }} />
                         </div>
                     )}
                 </div>

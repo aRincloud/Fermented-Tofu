@@ -3,18 +3,18 @@ import { createPortal } from 'react-dom';
 import { Check, MoveDown, MousePointer2, Smartphone } from 'lucide-react';
 
 interface SeasoningPhaseProps {
-  onComplete: (balance: number) => void;
+  onComplete: (balance: number, flavorLabel: string) => void;
 }
 
 type Ingredient = 'salt' | 'ginger' | 'huajiao' | 'chili_mild' | 'chili_med' | 'chili_hot';
 
 const INGREDIENTS: { id: Ingredient; label: string; color: string; iconColor: string }[] = [
-    { id: 'salt', label: 'Salt', color: '#ffffff', iconColor: '#d6d3d1' },
-    { id: 'ginger', label: 'Ginger', color: '#fde047', iconColor: '#eab308' },
-    { id: 'huajiao', label: 'Sichuan P.', color: '#57534e', iconColor: '#292524' },
-    { id: 'chili_mild', label: 'Mild Chili', color: '#fca5a5', iconColor: '#ef4444' },
-    { id: 'chili_med', label: 'Med Chili', color: '#dc2626', iconColor: '#991b1b' },
-    { id: 'chili_hot', label: 'Hot Chili', color: '#7f1d1d', iconColor: '#450a0a' },
+    { id: 'salt', label: '盐', color: '#ffffff', iconColor: '#d6d3d1' },
+    { id: 'ginger', label: '生姜', color: '#fde047', iconColor: '#eab308' },
+    { id: 'huajiao', label: '花椒', color: '#57534e', iconColor: '#292524' },
+    { id: 'chili_mild', label: '微辣', color: '#fca5a5', iconColor: '#ef4444' },
+    { id: 'chili_med', label: '中辣', color: '#dc2626', iconColor: '#991b1b' },
+    { id: 'chili_hot', label: '特辣', color: '#7f1d1d', iconColor: '#450a0a' },
 ];
 
 const SeasoningSpoonCursor = ({ x, y, holdingType }: { x: number, y: number, holdingType: Ingredient | null }) => {
@@ -79,7 +79,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
         if (permissionState === 'granted') {
             setPermissionGranted(true);
         } else {
-            alert('Permission denied. Shake feature requires motion access.');
+            alert('需要授权才能使用摇一摇功能');
         }
       } catch (e) { 
           console.error(e);
@@ -152,13 +152,39 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
   useEffect(() => {
       if (coatingLevel >= 100) {
           setTimeout(() => {
+              // --- Scoring Logic ---
+              // Requirement: Salt needs 1 scoop, Ginger needs 1 scoop. 
+              // Deviation deviates points.
               let score = 100;
-              const variety = Object.values(added).filter(v => v > 0).length;
-              if (variety < 3) score -= 30; 
-              if (added.salt > 4) score -= 20; 
-              if (added.salt === 0) score -= 40; 
               
-              onComplete(Math.max(0, score));
+              const saltDiff = Math.abs(added.salt - 1);
+              const gingerDiff = Math.abs(added.ginger - 1);
+              
+              score -= (saltDiff * 30);
+              score -= (gingerDiff * 30);
+              
+              score = Math.max(0, score); // Cap at 0
+
+              // --- Flavor Profile Logic ---
+              // Chili Mild=1, Med=2, Hot=3 points
+              const spicinessScore = (added.chili_mild * 1) + (added.chili_med * 2) + (added.chili_hot * 3);
+              let spicyLabel = "不辣";
+              if (spicinessScore > 0 && spicinessScore <= 8) spicyLabel = "微辣";
+              else if (spicinessScore >= 9 && spicinessScore <= 10) spicyLabel = "中辣";
+              else if (spicinessScore >= 11 && spicinessScore <= 14) spicyLabel = "重辣";
+              else if (spicinessScore >= 15) spicyLabel = "变态辣";
+
+              // Huajiao (Numbness) logic
+              const numbCount = added.huajiao;
+              let numbLabel = "不麻";
+              if (numbCount === 1) numbLabel = "微麻";
+              else if (numbCount === 2) numbLabel = "中麻";
+              else if (numbCount === 3) numbLabel = "重麻";
+              else if (numbCount > 3) numbLabel = "变态麻";
+
+              const flavorLabel = `${numbLabel}${spicyLabel}`;
+
+              onComplete(score, flavorLabel);
           }, 1500);
       }
   }, [coatingLevel, added, onComplete]);
@@ -294,13 +320,13 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
       {/* Coating Progress Bar */}
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-4 bg-stone-700 rounded-full overflow-hidden border border-stone-500">
           <div className="w-full h-full bg-red-600 transition-all duration-300" style={{ width: `${coatingLevel}%` }}></div>
-          <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/80">COATING</div>
+          <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/80">裹粉程度</div>
       </div>
 
       {/* Instruction */}
       {totalAdded === 0 && (
           <div className="absolute top-[20px] left-1/2 -translate-x-1/2 text-white/50 text-sm animate-bounce flex items-center gap-2 whitespace-nowrap">
-              <MoveDown size={16}/> Drag spices to bowl
+              <MoveDown size={16}/> 拖拽调料到碗里 (1盐1姜)
           </div>
       )}
 
@@ -377,7 +403,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
         {coatingLevel < 10 && totalAdded > 0 && (
             <div className="absolute -right-16 top-0 animate-pulse text-white drop-shadow-md flex flex-col items-center">
                 <MousePointer2 className="animate-wiggle mb-2" size={32}/>
-                <span className="text-xs font-bold bg-black/50 px-2 py-1 rounded">Hold & Shake!</span>
+                <span className="text-xs font-bold bg-black/50 px-2 py-1 rounded">按住并摇晃手机！</span>
             </div>
         )}
     </div>
@@ -386,7 +412,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
       <div className="absolute -bottom-16 w-full max-w-[300px]">
          {coatingLevel >= 100 && (
              <div className="bg-green-500 text-white font-bold py-3 rounded-xl text-center shadow-lg animate-bounce">
-                 <Check className="inline mr-2"/> Seasoning Complete!
+                 <Check className="inline mr-2"/> 裹粉完成！
              </div>
          )}
          
@@ -396,7 +422,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
                     onClick={requestMotionPermission} 
                     className="flex items-center gap-2 bg-stone-700 hover:bg-stone-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transition-all active:scale-95"
                  >
-                    <Smartphone size={16} /> Enable Phone Shake
+                    <Smartphone size={16} /> 开启手机摇晃
                 </button>
             )}
          </div>

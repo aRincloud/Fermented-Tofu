@@ -129,7 +129,7 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
                 {!pouring && !completed && (
                     <div className="absolute -top-10 left-0 right-0 text-center animate-bounce">
                         <div className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                            Hold to Pour
+                            按住倒酒
                         </div>
                     </div>
                 )}
@@ -140,7 +140,7 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
                     <div className="absolute top-10 left-0 right-0 h-12 bg-emerald-100/20 rotate-12"></div>
                     {/* Label */}
                     <div className="absolute top-24 left-2 right-2 h-20 bg-stone-200 rounded-sm flex items-center justify-center border border-stone-300">
-                        <span className="font-serif text-emerald-900 font-bold text-xl writing-vertical">Spirit</span>
+                        <span className="font-serif text-emerald-900 font-bold text-xl writing-vertical">白酒</span>
                     </div>
                 </div>
                 <div className="w-10 h-16 bg-emerald-900 mx-auto -mt-1 relative z-10 border-x border-emerald-700"></div>
@@ -158,11 +158,11 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
                  <div className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold shadow-lg animate-pop-in
                     ${fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? 'bg-green-500 text-white' : 'bg-stone-500 text-white'}`}>
                     {fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? <Check size={20}/> : null}
-                    {fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? 'Perfect Amount' : 'Done'}
+                    {fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? '完美' : '完成'}
                  </div>
             ) : (
                  <div className="text-stone-400 text-sm font-medium animate-pulse">
-                     Keep pouring until the bar hits green
+                     倒酒直到绿色区域
                  </div>
             )}
         </div>

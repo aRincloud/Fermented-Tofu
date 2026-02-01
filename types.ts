@@ -28,6 +28,8 @@ export interface GameScore {
   integrity: number; // Tofu condition (starts 100)
   alcoholPrecision: number; // 0-100
   flavorBalance: number; // 0-100
+  bottlingScore: number; // 0-100
+  flavorTitle: string; // e.g. "微麻中辣"
   total: number;
 }
 

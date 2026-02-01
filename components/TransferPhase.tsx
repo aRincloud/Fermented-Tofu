@@ -61,26 +61,29 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
   
   const bowlRef = useRef<HTMLDivElement>(null);
 
-  // Handle Dragging
-  const handlePointerDown = (id: number, e: React.MouseEvent | React.TouchEvent) => {
+  // Handle Dragging using PointerEvents for better touch support
+  const handlePointerDown = (id: number, e: React.PointerEvent) => {
+    e.preventDefault(); // Stop default browser actions like scroll
     if (navigator.vibrate) navigator.vibrate(20);
     
-    // IMMEDIATE UPDATE: Snap spatula to finger position immediately
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as any).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as any).clientY;
-    setCursorPos({ x: clientX, y: clientY });
-    
+    // Set Pointer Capture to ensure we don't lose the "touch" if moving fast
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+
+    setCursorPos({ x: e.clientX, y: e.clientY });
     setDraggingId(id);
   };
 
-  const handlePointerMove = (e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent) => {
-    const clientX = 'touches' in e ? e.touches[0].clientX : (e as any).clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : (e as any).clientY;
-    
-    setCursorPos({ x: clientX, y: clientY });
+  const handlePointerMove = (e: React.PointerEvent) => {
+    // Only update if we are dragging or just hovering (optional)
+    setCursorPos({ x: e.clientX, y: e.clientY });
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
+     // Release capture if held
+    if (draggingId !== null) {
+       try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch(err) {}
+    }
+
     if (draggingId === null) return;
 
     // Check collision with Bowl
@@ -110,17 +113,16 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
   };
 
   useEffect(() => {
-    window.addEventListener('mousemove', handlePointerMove as any);
-    window.addEventListener('touchmove', handlePointerMove as any);
-    window.addEventListener('mouseup', handlePointerUp);
-    window.addEventListener('touchend', handlePointerUp);
-    return () => {
-        window.removeEventListener('mousemove', handlePointerMove as any);
-        window.removeEventListener('touchmove', handlePointerMove as any);
-        window.removeEventListener('mouseup', handlePointerUp);
-        window.removeEventListener('touchend', handlePointerUp);
-    }
-  }, [draggingId, cursorPos]);
+    // Global listener for the cursor visual when not dragging
+    const handleGlobalMove = (e: MouseEvent) => {
+        if (draggingId === null) {
+            setCursorPos({x: e.clientX, y: e.clientY});
+        }
+    };
+    window.addEventListener('mousemove', handleGlobalMove);
+    return () => window.removeEventListener('mousemove', handleGlobalMove);
+  }, [draggingId]);
+
 
   useEffect(() => {
     if (processedCount === blocks.length) {
@@ -174,9 +176,10 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
                     return (
                     <div
                         key={block.id}
-                        onMouseDown={(e) => handlePointerDown(block.id, e)}
-                        onTouchStart={(e) => handlePointerDown(block.id, e)}
-                        className="absolute z-10 hover:scale-105 transition-transform"
+                        onPointerDown={(e) => handlePointerDown(block.id, e)}
+                        onPointerMove={handlePointerMove}
+                        onPointerUp={handlePointerUp}
+                        className="absolute z-10 hover:scale-105 transition-transform touch-none"
                         style={style}
                     >
                         <div className="w-full h-full bg-stone-100 rounded-sm shadow-md mold-texture border border-stone-200 cursor-none">
@@ -189,7 +192,7 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
             
              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none">
                  <div className="bg-black/50 text-white text-sm px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 animate-bounce">
-                    Drag Down <ArrowDown size={14} />
+                    向下拖拽 <ArrowDown size={14} />
                  </div>
             </div>
         </div>
@@ -224,7 +227,7 @@ export default function TransferPhase({ currentIntegrity, onComplete }: Transfer
             
             {droppedCount > 0 && (
                 <div className="absolute -bottom-10 right-0 text-red-500 font-bold flex items-center gap-1 animate-bounce">
-                    <Trash2 size={16}/> {droppedCount} Missed!
+                    <Trash2 size={16}/> {droppedCount} 掉了！
                 </div>
             )}
         </div>

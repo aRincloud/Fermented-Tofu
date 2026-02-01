@@ -32,7 +32,7 @@ const MenuPhase: React.FC<MenuPhaseProps> = ({ onStart }) => {
           className="group relative w-full py-5 bg-red-600 text-white font-bold rounded-2xl shadow-[0_0_25px_rgba(220,38,38,0.6)] hover:bg-red-500 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3 border-b-4 border-red-800"
         >
           <Play size={32} className="fill-current" />
-          <span className="text-xl tracking-wider">START GAME</span>
+          <span className="text-xl tracking-wider">开始制作</span>
         </button>
         
         <button
@@ -40,7 +40,7 @@ const MenuPhase: React.FC<MenuPhaseProps> = ({ onStart }) => {
           className="w-full py-4 bg-white/10 backdrop-blur text-white font-bold rounded-2xl shadow-lg hover:bg-white/20 active:scale-95 transition-all flex items-center justify-center gap-3 border border-white/20"
         >
           <Trophy size={24} className="text-amber-300" />
-          <span className="text-lg">Leaderboard</span>
+          <span className="text-lg">排行榜</span>
         </button>
       </div>
 
@@ -49,7 +49,7 @@ const MenuPhase: React.FC<MenuPhaseProps> = ({ onStart }) => {
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] max-w-sm max-h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-float bg-white text-stone-800 border-4 border-amber-100">
             <div className="p-5 border-b border-stone-100 flex justify-between items-center bg-amber-50">
               <h3 className="font-bold text-xl text-amber-900 flex items-center gap-2">
-                <Trophy size={24} className="fill-amber-500 text-amber-600"/> Top Makers
+                <Trophy size={24} className="fill-amber-500 text-amber-600"/> 霉豆腐大师
               </h3>
               <button onClick={() => setShowLeaderboard(false)} className="p-2 hover:bg-stone-200 rounded-full active:scale-90 transition-transform">
                 <X size={24} />
@@ -57,14 +57,14 @@ const MenuPhase: React.FC<MenuPhaseProps> = ({ onStart }) => {
             </div>
             <div className="overflow-y-auto flex-1 p-0 custom-scrollbar">
               {leaders.length === 0 ? (
-                <div className="p-10 text-stone-400 italic text-center text-lg">No records yet.<br/>Be the first!</div>
+                <div className="p-10 text-stone-400 italic text-center text-lg">暂无记录。<br/>快来创造第一名！</div>
               ) : (
                 <table className="w-full text-left text-sm">
                   <thead className="bg-stone-50 text-stone-500 sticky top-0 z-10 shadow-sm">
                     <tr>
-                      <th className="p-4 font-medium">Rank</th>
-                      <th className="p-4 font-medium">Chef</th>
-                      <th className="p-4 font-medium text-right">Score</th>
+                      <th className="p-4 font-medium">排名</th>
+                      <th className="p-4 font-medium">大厨</th>
+                      <th className="p-4 font-medium text-right">评分</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-100">
