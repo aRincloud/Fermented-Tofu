@@ -47,6 +47,7 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
   const [coatingLevel, setCoatingLevel] = useState(0); 
   const [permissionGranted, setPermissionGranted] = useState(false);
   const [shakeIntensity, setShakeIntensity] = useState(0);
+  const [feedbacks, setFeedbacks] = useState<{id: number, x: number, y: number, text: string}[]>([]);
   
   // Use Refs for cursor tracking to avoid stale closures in listeners
   const cursorPosRef = useRef({ x: 0, y: 0 });
@@ -69,6 +70,12 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
       r: (Math.random() * 30) - 15,
       scale: 0.8 + Math.random() * 0.4
   })));
+
+  const addFeedback = (x: number, y: number, text: string) => {
+    const id = Date.now();
+    setFeedbacks(prev => [...prev, { id, x, y, text }]);
+    setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== id)), 800);
+  };
 
   // Motion Logic (Mobile)
   const requestMotionPermission = async () => {
@@ -243,6 +250,11 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
              y >= bowlRect.top && y <= bowlRect.bottom) {
              
              setAdded(prev => ({ ...prev, [draggingSpice]: prev[draggingSpice] + 1 }));
+             
+             // Feedback
+             const ing = INGREDIENTS.find(i => i.id === draggingSpice);
+             if (ing) addFeedback(x, y - 50, `${ing.label} +1`);
+
              if (navigator.vibrate) navigator.vibrate(20);
          }
       }
@@ -323,12 +335,30 @@ export default function SeasoningPhase({ onComplete }: SeasoningPhaseProps) {
           <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white/80">裹粉程度</div>
       </div>
 
+      {/* Hint */}
+      {totalAdded < 2 && (
+          <div className="absolute top-32 bg-amber-100 border border-amber-300 px-3 py-1 rounded text-amber-800 text-xs shadow-sm animate-pulse">
+              提示：标准配方为 1勺盐、1勺生姜
+          </div>
+      )}
+
       {/* Instruction */}
       {totalAdded === 0 && (
           <div className="absolute top-[20px] left-1/2 -translate-x-1/2 text-white/50 text-sm animate-bounce flex items-center gap-2 whitespace-nowrap">
-              <MoveDown size={16}/> 拖拽调料到碗里 (1盐1姜)
+              <MoveDown size={16}/> 拖拽调料到碗里
           </div>
       )}
+
+      {/* Floating Feedback */}
+      {feedbacks.map(fb => (
+            <div 
+                key={fb.id} 
+                className="fixed text-amber-400 font-bold text-lg pointer-events-none animate-float-up z-[100] shadow-sm drop-shadow-md"
+                style={{ left: fb.x, top: fb.y }}
+            >
+                {fb.text}
+            </div>
+      ))}
 
       {/* Bowl View */}
       <div 

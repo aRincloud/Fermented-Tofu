@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { GRID_SIZE, TofuBlock, Connection } from '../types';
-import { Move } from 'lucide-react';
+import { Move, AlertCircle } from 'lucide-react';
 
 interface CuttingPhaseProps {
   onComplete: (integrity: number) => void;
@@ -72,6 +72,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
   const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
   const [isVertical, setIsVertical] = useState(false); 
   const [isCutting, setIsCutting] = useState(false); 
+  const [feedbacks, setFeedbacks] = useState<{id: number, x: number, y: number, text: string}[]>([]);
   
   // Track previous position for direction calculation
   const lastPosRef = useRef({ x: 0, y: 0 });
@@ -86,6 +87,12 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
       x: clientX - rect.left,
       y: clientY - rect.top
     };
+  };
+
+  const addFeedback = (x: number, y: number, text: string) => {
+      const id = Date.now();
+      setFeedbacks(prev => [...prev, { id, x, y, text }]);
+      setTimeout(() => setFeedbacks(prev => prev.filter(f => f.id !== id)), 1000);
   };
 
   const handleStart = (e: MouseEvent | TouchEvent | React.MouseEvent | React.TouchEvent) => {
@@ -125,6 +132,7 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
     const w = rect.width;
     const blockSize = w / GRID_SIZE;
     
+    // 1. Connection Hit Logic (Good Cuts)
     setConnections(prev => prev.map(conn => {
       if (conn.severed) return conn;
 
@@ -145,6 +153,27 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
 
       if (hit && navigator.vibrate) navigator.vibrate(10);
       return hit ? { ...conn, severed: true } : conn;
+    }));
+
+    // 2. Block Damage Logic (Bad Cuts)
+    setBlocks(prev => prev.map(block => {
+        if (block.state === 'damaged') return block;
+
+        const bx = block.col * blockSize;
+        const by = block.row * blockSize;
+        
+        // Check if cursor is deep inside the block
+        const margin = 15; // Buffer from edges
+        const inX = x > bx + margin && x < bx + blockSize - margin;
+        const inY = y > by + margin && y < by + blockSize - margin;
+        
+        if (inX && inY) {
+            // It's a hit on the block meat!
+            if (navigator.vibrate) navigator.vibrate(50);
+            addFeedback(x, y, "-15");
+            return { ...block, state: 'damaged' };
+        }
+        return block;
     }));
 
   }, [blocks, isVertical, isCutting]);
@@ -227,8 +256,8 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
                   paddingRight: `${marginRight}%`
                 }}
               >
-                <div className={`w-full h-full relative group overflow-visible transition-colors
-                  ${block.state === 'damaged' ? 'bg-red-200' : 'bg-stone-100'}
+                <div className={`w-full h-full relative group overflow-visible transition-colors duration-200
+                  ${block.state === 'damaged' ? 'bg-red-400' : 'bg-stone-100'}
                   shadow-sm
                 `}>
                    {(!marginTop && block.row > 0) && <div className="absolute -top-4 left-0 right-0 h-6 bg-stone-100 blur-sm z-10"></div>}
@@ -238,17 +267,34 @@ export default function CuttingPhase({ onComplete }: CuttingPhaseProps) {
 
                    <div className="absolute inset-0 mold-texture opacity-80 z-20"></div>
                    <div className="absolute inset-[-4px] border-4 border-white/60 blur-[2px] rounded-sm z-20"></div>
+                   
+                   {block.state === 'damaged' && (
+                       <div className="absolute inset-0 flex items-center justify-center animate-ping">
+                           <AlertCircle className="text-white opacity-50" />
+                       </div>
+                   )}
                 </div>
               </div>
             )
         })}
+        
+        {/* Floating Feedback Text */}
+        {feedbacks.map(fb => (
+            <div 
+                key={fb.id} 
+                className="absolute text-red-600 font-bold text-xl pointer-events-none animate-float-up z-50"
+                style={{ left: fb.x, top: fb.y }}
+            >
+                {fb.text}
+            </div>
+        ))}
       </div>
 
       {/* Instructions */}
       <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 z-40">
          <div className="bg-black/40 px-4 py-2 rounded-full backdrop-blur-sm flex items-center gap-2 text-white text-sm animate-pulse whitespace-nowrap">
              <Move size={16} />
-             <span>滑动切割 • 自动旋转</span>
+             <span>滑动切割 • 勿伤豆腐</span>
          </div>
       </div>
     </div>

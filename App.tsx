@@ -91,7 +91,7 @@ export default function App() {
     <div className="h-[100dvh] w-full bg-stone-900 overflow-hidden relative font-sans touch-none select-none">
       
       {/* 1. HUD / UI Layer */}
-      <div className="absolute top-0 left-0 right-0 z-50 pointer-events-none p-4 flex flex-col items-center safe-area-inset-top">
+      <div className="absolute top-0 left-0 right-0 z-40 pointer-events-none p-4 flex flex-col items-center safe-area-inset-top">
          <div className="w-full max-w-4xl flex justify-between items-start pointer-events-auto">
             {phase !== 'MENU' && phase !== 'RESULT' && (
                 <div className="bg-white/90 backdrop-blur shadow-lg rounded-2xl p-2 flex gap-3 border-2 border-stone-200 animate-slide-down origin-top-left transition-transform scale-90 md:scale-100 origin-top-left">
@@ -141,7 +141,7 @@ export default function App() {
          </div>
       </div>
 
-      {/* 2. Responsive Wrapper */}
+      {/* 2. Responsive Wrapper (Game World) */}
       <div 
         className="absolute top-1/2 left-1/2 transition-transform duration-300 ease-out will-change-transform origin-center"
         style={{ 
@@ -215,21 +215,23 @@ export default function App() {
                 </div>
 
             </div>
-
-            {phase === 'MENU' && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-                    <MenuPhase onStart={resetGame} />
-                </div>
-            )}
-
-            {phase === 'RESULT' && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md">
-                    <ResultPhase score={score} onRestart={() => setPhase('MENU')} />
-                </div>
-            )}
-
         </div>
       </div>
+
+      {/* 4. Full Screen Overlay Phases (Fixed Position) */}
+      {/* These are moved OUTSIDE the scaled world so they cover the full screen on mobile */}
+      {phase === 'MENU' && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+              <MenuPhase onStart={resetGame} />
+          </div>
+      )}
+
+      {phase === 'RESULT' && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-md">
+              <ResultPhase score={score} onRestart={() => setPhase('MENU')} />
+          </div>
+      )}
+
     </div>
   );
 }

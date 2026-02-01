@@ -10,6 +10,9 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
   const [fillLevel, setFillLevel] = useState(0); // 0 to 100
   const [completed, setCompleted] = useState(false);
   
+  // Use ref to track fillLevel for event listeners to avoid stale closure
+  const fillLevelRef = useRef(0);
+  
   // Adjusted Difficulty
   const TARGET_MIN = 60; 
   const TARGET_MAX = 90; 
@@ -27,12 +30,14 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
     setPouring(false);
     setCompleted(true);
     
-    // Calculate score
+    // Calculate score using REF to ensure fresh value
+    const currentLevel = fillLevelRef.current;
+    
     let score = 0;
-    if (fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX) {
+    if (currentLevel >= TARGET_MIN && currentLevel <= TARGET_MAX) {
       score = 100; // Perfect
     } else {
-      const dist = Math.min(Math.abs(fillLevel - TARGET_MIN), Math.abs(fillLevel - TARGET_MAX));
+      const dist = Math.min(Math.abs(currentLevel - TARGET_MIN), Math.abs(currentLevel - TARGET_MAX));
       score = Math.max(0, 100 - (dist * 4));
     }
 
@@ -42,8 +47,12 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
   };
 
   const animate = () => {
-    if (pouring && fillLevel < 105) {
-      setFillLevel(prev => prev + FILL_RATE);
+    if (pouring && fillLevelRef.current < 105) {
+      setFillLevel(prev => {
+          const newVal = prev + FILL_RATE;
+          fillLevelRef.current = newVal;
+          return newVal;
+      });
       requestRef.current = requestAnimationFrame(animate);
     }
   };
