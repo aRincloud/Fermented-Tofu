@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Droplets, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface AlcoholPhaseProps {
   onComplete: (precision: number) => void;
@@ -10,9 +10,10 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
   const [fillLevel, setFillLevel] = useState(0); // 0 to 100
   const [completed, setCompleted] = useState(false);
   
-  const TARGET_MIN = 70;
-  const TARGET_MAX = 85;
-  const FILL_RATE = 0.8; 
+  // Adjusted Difficulty
+  const TARGET_MIN = 60; 
+  const TARGET_MAX = 90; 
+  const FILL_RATE = 0.4; 
   
   const requestRef = useRef<number>(0);
 
@@ -22,7 +23,7 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
   };
 
   const stopPour = () => {
-    if (completed) return;
+    if (completed || !pouring) return;
     setPouring(false);
     setCompleted(true);
     
@@ -58,6 +59,25 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
     };
   }, [pouring]); 
 
+  // Interaction handlers - ATTACHED TO WINDOW for Release
+  useEffect(() => {
+      const handleGlobalUp = () => {
+          if (pouring) stopPour();
+      };
+      
+      window.addEventListener('mouseup', handleGlobalUp);
+      window.addEventListener('touchend', handleGlobalUp);
+      return () => {
+          window.removeEventListener('mouseup', handleGlobalUp);
+          window.removeEventListener('touchend', handleGlobalUp);
+      };
+  }, [pouring, completed]);
+
+  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault(); 
+      startPour();
+  }
+
   return (
     <div className="w-full h-full flex flex-col items-center justify-center relative select-none animate-fade-in">
         
@@ -65,10 +85,9 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
         <div className="absolute -top-16 w-64 h-6 bg-stone-800/80 rounded-full overflow-hidden border border-stone-600 backdrop-blur-sm">
             {/* Target Zone */}
             <div 
-                className="absolute top-0 bottom-0 bg-green-500/30 border-x border-green-500"
+                className="absolute top-0 bottom-0 bg-green-500/30 border-x border-green-500 transition-all"
                 style={{ left: `${TARGET_MIN}%`, width: `${TARGET_MAX - TARGET_MIN}%` }}
             >
-                {/* <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-green-400">Target</span> */}
             </div>
             {/* Fill Bar */}
             <div 
@@ -97,45 +116,55 @@ export default function AlcoholPhase({ onComplete }: AlcoholPhaseProps) {
                 </div>
             </div>
             
-            {/* Bottle Graphic (Right side) */}
+            {/* Bottle Graphic (Interactive) */}
             <div 
-                className={`absolute -right-16 -top-16 w-32 h-64 bg-stone-800/10 transition-transform duration-300 origin-bottom-right
-                    ${pouring ? 'rotate-[-45deg] translate-y-10' : 'rotate-0'}
+                className={`absolute -right-20 -top-24 w-40 h-80 transition-transform duration-300 origin-bottom-right cursor-pointer touch-none
+                    ${pouring ? 'rotate-[-45deg] translate-y-10 scale-95' : 'rotate-0 hover:scale-105 active:scale-95'}
                 `}
+                onMouseDown={handleStart}
+                onTouchStart={handleStart}
+                // Removed local mouseUp/End, handled by global effect
             >
+                {/* Instruction Float */}
+                {!pouring && !completed && (
+                    <div className="absolute -top-10 left-0 right-0 text-center animate-bounce">
+                        <div className="bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                            Hold to Pour
+                        </div>
+                    </div>
+                )}
+
                 {/* Simple Bottle CSS Art */}
-                <div className="w-20 h-48 bg-emerald-800/80 rounded-b-xl rounded-t-lg border-2 border-emerald-600 backdrop-blur-md mx-auto relative overflow-hidden">
+                <div className="w-24 h-56 bg-emerald-800/90 rounded-b-xl rounded-t-lg border-2 border-emerald-600 backdrop-blur-md mx-auto relative overflow-hidden shadow-2xl">
                     <div className="absolute bottom-0 w-full h-full bg-emerald-900/50"></div>
                     <div className="absolute top-10 left-0 right-0 h-12 bg-emerald-100/20 rotate-12"></div>
+                    {/* Label */}
+                    <div className="absolute top-24 left-2 right-2 h-20 bg-stone-200 rounded-sm flex items-center justify-center border border-stone-300">
+                        <span className="font-serif text-emerald-900 font-bold text-xl writing-vertical">Spirit</span>
+                    </div>
                 </div>
-                <div className="w-8 h-16 bg-emerald-900 mx-auto -mt-1 relative z-10"></div>
+                <div className="w-10 h-16 bg-emerald-900 mx-auto -mt-1 relative z-10 border-x border-emerald-700"></div>
                 
                 {/* Stream */}
                 {pouring && (
-                    <div className="absolute -left-10 top-[200px] w-[200px] h-4 bg-blue-300/60 rounded-full blur-sm rotate-[-45deg]"></div>
+                    <div className="absolute -left-10 top-[260px] w-[300px] h-4 bg-blue-300/60 rounded-full blur-sm rotate-[-45deg] pointer-events-none"></div>
                 )}
             </div>
         </div>
 
-        {/* Controls */}
-        <div className="absolute bottom-[-80px]">
-            <button
-                className={`
-                    w-20 h-20 rounded-full border-4 shadow-xl transition-all active:scale-95 flex items-center justify-center
-                    ${completed 
-                        ? (fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? 'bg-green-500 border-green-600' : 'bg-stone-500 border-stone-600') 
-                        : 'bg-blue-600 border-blue-400 hover:bg-blue-500 animate-pulse'
-                    }
-                `}
-                onMouseDown={startPour}
-                onMouseUp={stopPour}
-                onTouchStart={startPour}
-                onTouchEnd={stopPour}
-                disabled={completed}
-            >
-                {completed ? (fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? <Check className="text-white" size={32}/> : <div className="text-white font-bold">Done</div>) : <Droplets className="text-white" size={32} />}
-            </button>
-            <div className="mt-2 text-center text-sm font-bold text-stone-300 bg-black/40 rounded-full px-2">Hold to Pour</div>
+        {/* Status Text (Replacing Bottom Button) */}
+        <div className="absolute bottom-[-60px]">
+            {completed ? (
+                 <div className={`flex items-center gap-2 px-6 py-2 rounded-full font-bold shadow-lg animate-pop-in
+                    ${fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? 'bg-green-500 text-white' : 'bg-stone-500 text-white'}`}>
+                    {fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? <Check size={20}/> : null}
+                    {fillLevel >= TARGET_MIN && fillLevel <= TARGET_MAX ? 'Perfect Amount' : 'Done'}
+                 </div>
+            ) : (
+                 <div className="text-stone-400 text-sm font-medium animate-pulse">
+                     Keep pouring until the bar hits green
+                 </div>
+            )}
         </div>
     </div>
   );
